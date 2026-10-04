@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "R2R Contractor",
+    "name": "R&D Contractor",
     "slug": "r2r-contractor-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,25 +9,31 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0F172A"
+      "backgroundColor": "#000000"
     },
+    "jsEngine": "hermes",
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.r2r.contractor.app"
+      "bundleIdentifier": "com.rd.contractor.app",
+      "jsEngine": "hermes"
     },
     "android": {
+      "jsEngine": "hermes",
+      "enableHardwareAcceleration": true,
+      "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0F172A"
+        "backgroundColor": "#000000"
       },
-      "package": "com.r2r.contractor.app",
+      "package": "com.rd.contractor.app",
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES"
       ]
     },
     "web": {

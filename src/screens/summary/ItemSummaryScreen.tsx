@@ -6,6 +6,7 @@ import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Input } from '../../components/common/Input';
 import { EmptyState } from '../../components/common/EmptyState';
+import { Button } from '../../components/common/Button';
 import { useSites } from '../../context/SiteContext';
 import api from '../../services/api';
 import { ItemSummary } from '../../types';
@@ -49,6 +50,12 @@ export const ItemSummaryScreen = ({ navigation }: any) => {
           containerStyle={{ marginBottom: 10 }}
         />
 
+        <Button
+          title="➕ ADD NEW ITEM / MATERIAL WITH PRICE"
+          onPress={() => navigation.navigate('AddExpense')}
+          style={{ marginBottom: 10 }}
+        />
+
         {/* Total Cost Summary Card */}
         <Card style={styles.totalCard}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -72,26 +79,30 @@ export const ItemSummaryScreen = ({ navigation }: any) => {
           keyExtractor={(item) => `${item.itemName}-${item.unit}`}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={loadItemSummary} tintColor={Colors.accent} />}
           ListEmptyComponent={<EmptyState title="No Items Recorded" description="As expenses are added, item quantities will automatically aggregate here." />}
-          renderItem={({ item }) => (
-            <Card style={styles.rowCard}>
-              <View style={{ flex: 2 }}>
-                <Text style={styles.itemName}>{item.itemName}</Text>
-                <View style={{ marginTop: 2 }}>
-                  <Badge label={item.category} variant="category" categoryName={item.category} />
+          renderItem={({ item }) => {
+            const addedByStr = item.addedByUsers && item.addedByUsers.length > 0 ? item.addedByUsers.join(', ') : 'Supervisor';
+            return (
+              <Card style={styles.rowCard}>
+                <View style={{ flex: 2 }}>
+                  <Text style={styles.itemName}>{item.itemName}</Text>
+                  <View style={{ marginTop: 2, flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                    <Badge label={item.category} variant="category" categoryName={item.category} />
+                  </View>
+                  <Text style={{ color: Colors.textMuted, fontSize: 10, marginTop: 4 }}>👤 Added by: {addedByStr}</Text>
                 </View>
-              </View>
 
-              <View style={{ flex: 1.5, alignItems: 'center' }}>
-                <Text style={styles.qtyValue}>{item.totalQuantity} <Text style={styles.unitText}>{item.unit}</Text></Text>
-                <Text style={styles.avgRate}>Avg: ₹{item.averageRate.toLocaleString('en-IN')}</Text>
-              </View>
+                <View style={{ flex: 1.5, alignItems: 'center' }}>
+                  <Text style={styles.qtyValue}>{item.totalQuantity} <Text style={styles.unitText}>{item.unit}</Text></Text>
+                  <Text style={styles.avgRate}>Avg: ₹{item.averageRate.toLocaleString('en-IN')}</Text>
+                </View>
 
-              <View style={{ flex: 1.5, alignItems: 'flex-end' }}>
-                <Text style={styles.costValue}>₹{item.totalCost.toLocaleString('en-IN')}</Text>
-                <Text style={styles.entriesText}>{item.entryCount} entries</Text>
-              </View>
-            </Card>
-          )}
+                <View style={{ flex: 1.5, alignItems: 'flex-end' }}>
+                  <Text style={styles.costValue}>₹{item.totalCost.toLocaleString('en-IN')}</Text>
+                  <Text style={styles.entriesText}>{item.entryCount} entries</Text>
+                </View>
+              </Card>
+            );
+          }}
         />
       </View>
     </View>

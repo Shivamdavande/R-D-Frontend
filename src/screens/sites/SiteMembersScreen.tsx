@@ -42,7 +42,10 @@ export const SiteMembersScreen = ({ route, navigation }: any) => {
     try {
       const res = await api.post(`/sites/${siteId}/members`, { userId, role: 'SUPERVISOR' });
       if (res.data?.success) {
-        Alert.alert('Success ✅', `${userName} assigned as site supervisor.`);
+        const emailNotice = res.data.emailSent
+          ? '\nA notification email has been sent to the supervisor.'
+          : '';
+        Alert.alert('Supervisor Added ✅', `${userName} assigned as site supervisor.${emailNotice}`);
         loadMembers();
       }
     } catch (err: any) {

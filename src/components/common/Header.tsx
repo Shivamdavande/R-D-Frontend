@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { useSites } from '../../context/SiteContext';
 import { useNetwork } from '../../context/NetworkContext';
@@ -14,6 +14,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ title, subtitle, showSiteSelector = true, navigation }) => {
   const { activeSite } = useSites();
   const { pendingSyncCount, isOnline, setIsOnline } = useNetwork();
+  const canGoBack = navigation?.canGoBack && navigation.canGoBack();
 
   return (
     <View style={styles.container}>
@@ -34,10 +35,20 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, showSiteSelecto
       {/* Main Top Header */}
       <View style={styles.topRow}>
         <View style={styles.brandContainer}>
+          {canGoBack && (
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.backBtnText}>← Back</Text>
+            </TouchableOpacity>
+          )}
+
           <Text style={styles.logoText}>R&D</Text>
           <View style={styles.taglineBox}>
             <Text style={styles.tagline}>CONSTRUCTIONS</Text>
-            <Text style={styles.subTagline}>Site Expense & Lump Sum P&L</Text>
+            <Text style={styles.subTagline}>Site Expense & P&L</Text>
           </View>
         </View>
 
@@ -45,6 +56,7 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, showSiteSelecto
         <TouchableOpacity
           style={[styles.networkBadge, isOnline ? styles.onlineBadge : styles.offlineBadge]}
           onPress={() => setIsOnline(!isOnline)}
+          activeOpacity={0.8}
         >
           <View style={[styles.dot, { backgroundColor: isOnline ? Colors.success : Colors.danger }]} />
           <Text style={styles.networkText}>{isOnline ? 'ONLINE' : 'OFFLINE'}</Text>
@@ -56,13 +68,20 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, showSiteSelecto
         <TouchableOpacity
           style={styles.siteSelectorRow}
           onPress={() => navigation?.navigate('SitesList')}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
-          <Text style={styles.siteLabel}>SITE:</Text>
-          <Text style={styles.siteNameText} numberOfLines={1}>
-            {activeSite.siteName}
-          </Text>
-          <Text style={styles.woText}>WO: {activeSite.workOrderNumber} ▾</Text>
+          <View style={styles.siteIconBadge}>
+            <Text style={{ fontSize: 13 }}>🏗️</Text>
+          </View>
+          <View style={{ flex: 1, marginHorizontal: 8 }}>
+            <Text style={styles.siteNameText} numberOfLines={1}>
+              {activeSite.siteName}
+            </Text>
+            <Text style={styles.woText}>WO: {activeSite.workOrderNumber}</Text>
+          </View>
+          <View style={styles.switchSitePill}>
+            <Text style={styles.switchSiteText}>Switch Site ▾</Text>
+          </View>
         </TouchableOpacity>
       ) : (
         title && (
@@ -78,18 +97,37 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, showSiteSelecto
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.primary,
-    paddingTop: 45,
+    backgroundColor: '#FFFFFF',
+    paddingTop: Platform.OS === 'ios' ? 50 : 38,
     paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.surfaceBorder
+    borderBottomColor: Colors.surfaceBorder,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2
+  },
+  backBtn: {
+    backgroundColor: Colors.surfaceSecondary,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder
+  },
+  backBtnText: {
+    color: Colors.accent,
+    fontSize: 12,
+    fontWeight: '800'
   },
   syncBanner: {
     backgroundColor: Colors.warningLight,
     borderColor: Colors.warning,
     borderWidth: 1,
-    borderRadius: 6,
+    borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 12,
     marginBottom: 10,
@@ -102,7 +140,7 @@ const styles = StyleSheet.create({
   syncBannerText: {
     color: Colors.textPrimary,
     fontSize: 12,
-    fontWeight: '600'
+    fontWeight: '700'
   },
   topRow: {
     flexDirection: 'row',
@@ -116,7 +154,7 @@ const styles = StyleSheet.create({
   },
   logoText: {
     color: Colors.accent,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
     letterSpacing: 1,
     marginRight: 8
@@ -128,20 +166,21 @@ const styles = StyleSheet.create({
   },
   tagline: {
     color: Colors.textPrimary,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5
   },
   subTagline: {
-    color: Colors.textSecondary,
-    fontSize: 9
+    color: Colors.textMuted,
+    fontSize: 9,
+    fontWeight: '600'
   },
   networkBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 9,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1
   },
   onlineBadge: {
@@ -156,7 +195,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 4
+    marginRight: 5
   },
   networkText: {
     color: Colors.textPrimary,
@@ -166,41 +205,53 @@ const styles = StyleSheet.create({
   siteSelectorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    backgroundColor: Colors.primaryLight,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.surfaceBorder
   },
-  siteLabel: {
-    color: Colors.accent,
-    fontSize: 10,
-    fontWeight: '900',
-    marginRight: 6
+  siteIconBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   siteNameText: {
     color: Colors.textPrimary,
     fontSize: 13,
-    fontWeight: '700',
-    flex: 1,
-    marginRight: 6
+    fontWeight: '800'
   },
   woText: {
-    color: Colors.accent,
-    fontSize: 11,
-    fontWeight: '700'
+    color: Colors.textSecondary,
+    fontSize: 10,
+    fontWeight: '600'
+  },
+  switchSitePill: {
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12
+  },
+  switchSiteText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800'
   },
   titleContainer: {
     marginTop: 4
   },
   titleText: {
     color: Colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '700'
+    fontSize: 17,
+    fontWeight: '800'
   },
   subtitleText: {
     color: Colors.textSecondary,
-    fontSize: 12
+    fontSize: 11,
+    marginTop: 2
   }
 });

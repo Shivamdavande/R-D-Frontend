@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Header } from '../../components/common/Header';
 import { Input } from '../../components/common/Input';
@@ -86,8 +86,12 @@ export const ExpenseListScreen = ({ navigation }: any) => {
           keyExtractor={(item) => item._id}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={loadExpenses} tintColor={Colors.accent} />}
           ListEmptyComponent={<EmptyState title="No Expenses Found" description="Tap + Add Expense to create an entry for this site." />}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={7}
+          removeClippedSubviews={Platform.OS !== 'web'}
           renderItem={({ item }) => {
-            const userName = typeof item.createdBy === 'object' ? item.createdBy.name : 'Supervisor';
+            const userName = item.createdBy && typeof item.createdBy === 'object' ? (item.createdBy.name || 'Supervisor') : (typeof item.createdBy === 'string' ? item.createdBy : 'Supervisor');
             return (
               <Card style={styles.card} onPress={() => navigation.navigate('ExpenseDetail', { expenseId: item._id })}>
                 <View style={styles.row}>
@@ -102,7 +106,7 @@ export const ExpenseListScreen = ({ navigation }: any) => {
 
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={styles.amountText}>₹{item.amount.toLocaleString('en-IN')}</Text>
-                    <Text style={styles.userText}>By {userName}</Text>
+                    <Text style={styles.userText}>👤 Added by: {userName}</Text>
                     <Text style={styles.dateText}>{new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</Text>
                   </View>
                 </View>

@@ -11,7 +11,7 @@ interface SiteContextType {
   isLoading: boolean;
   refreshSites: () => Promise<void>;
   createSite: (data: Partial<Site>) => Promise<Site>;
-  closeSite: (siteId: string) => Promise<void>;
+  closeSite: (siteId: string) => Promise<any>;
   reopenSite: (siteId: string) => Promise<void>;
 }
 
@@ -33,7 +33,18 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   const refreshSites = async () => {
-    setIsLoading(true);
+    // 1. Instant Cache-First: Load cached sites immediately for instant 0ms UI rendering
+    try {
+      const cached = await getCachedSites();
+      if (cached && cached.length > 0) {
+        setSites(cached);
+        if (!activeSite) setActiveSite(cached[0]);
+      }
+    } catch (e) {
+      // Ignore local read errors
+    }
+
+    // 2. Sync latest data from backend in the background
     try {
       const res = await api.get('/sites');
       if (res.data?.success) {
@@ -46,17 +57,16 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setActiveSite(res.data.sites[0]);
           } else {
             const updatedActive = res.data.sites.find((s: Site) => s._id === activeSite._id);
-            if (updatedActive) setActiveSite(updatedActive);
+            if (updatedActive) {
+              setActiveSite(updatedActive);
+            } else {
+              setActiveSite(res.data.sites[0]);
+            }
           }
         }
       }
     } catch (err) {
-      console.warn('Network error loading sites, loading offline cache...');
-      const cached = await getCachedSites();
-      if (cached && cached.length > 0) {
-        setSites(cached);
-        if (!activeSite) setActiveSite(cached[0]);
-      }
+      // Offline fallback already loaded
     } finally {
       setIsLoading(false);
     }
@@ -76,6 +86,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (res.data?.success) {
       await refreshSites();
     }
+    return res.data;
   };
 
   const reopenSite = async (siteId: string) => {

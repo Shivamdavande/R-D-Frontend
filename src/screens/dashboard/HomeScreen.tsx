@@ -13,7 +13,7 @@ import { Expense } from '../../types';
 
 export const HomeScreen = ({ navigation }: any) => {
   const { user, isOwner } = useAuth();
-  const { sites, activeSite, refreshSites } = useSites();
+  const { sites, activeSite, setActiveSite, refreshSites } = useSites();
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -59,7 +59,7 @@ export const HomeScreen = ({ navigation }: any) => {
         {/* Welcome Banner */}
         <View style={styles.welcomeRow}>
           <View>
-            <Text style={styles.welcomeText}>Hello, {user?.name}</Text>
+            <Text style={styles.welcomeText}>Hello, {user?.name || 'User'}</Text>
             <Text style={styles.roleBadge}>{user?.role === 'OWNER' ? '👑 OWNER / CONTRACTOR' : '👷 SITE SUPERVISOR'}</Text>
           </View>
           <Button
@@ -70,56 +70,114 @@ export const HomeScreen = ({ navigation }: any) => {
         </View>
 
         {/* Global KPI Metrics */}
-        <View style={styles.statsGrid}>
-          <StatCard title="ACTIVE SITES" value={`${activeSitesCount}`} subtitle={`${closedSitesCount} Completed`} type="contract" />
-          <StatCard title="CONTRACT VALUE" value={`₹${totalContractVal.toLocaleString('en-IN')}`} type="contract" />
-        </View>
-        <View style={styles.statsGrid}>
-          <StatCard title="TOTAL SITE EXPENSES" value={`₹${totalExpVal.toLocaleString('en-IN')}`} type="expense" />
-          <StatCard title="OVERALL PROFIT" value={`₹${overallProfit.toLocaleString('en-IN')}`} subtitle={`${overallProfitPct}% Margin`} type="profit" />
-        </View>
-
-        {/* Active Site Spotlight */}
-        {activeSite ? (
-          <Card style={styles.activeSiteCard} onPress={() => navigation.navigate('SiteDetail', { siteId: activeSite._id })}>
-            <View style={styles.cardHeader}>
-              <View>
-                <Text style={styles.cardTag}>ACTIVE SITE SPOTLIGHT</Text>
-                <Text style={styles.siteTitle}>{activeSite.siteName}</Text>
-                <Text style={styles.clientText}>{activeSite.clientName} (WO: {activeSite.workOrderNumber})</Text>
-              </View>
-              <Badge label={activeSite.status} variant={activeSite.status === 'ACTIVE' ? 'success' : 'danger'} />
+        {isOwner ? (
+          <>
+            <View style={styles.statsGrid}>
+              <StatCard title="ACTIVE SITES" value={`${activeSitesCount}`} subtitle={`${closedSitesCount} Completed`} type="contract" />
+              <StatCard title="CONTRACT VALUE" value={`₹${totalContractVal.toLocaleString('en-IN')}`} type="contract" />
+            </View>
+            <View style={styles.statsGrid}>
+              <StatCard title="TOTAL SITE EXPENSES" value={`₹${totalExpVal.toLocaleString('en-IN')}`} type="expense" />
+              <StatCard title="OVERALL PROFIT" value={`₹${overallProfit.toLocaleString('en-IN')}`} subtitle={`${overallProfitPct}% Margin`} type="profit" />
             </View>
 
-            <View style={styles.metricsRow}>
-              <View style={styles.miniMetric}>
-                <Text style={styles.miniLabel}>Contract Value</Text>
-                <Text style={styles.miniValue}>₹{(activeSite.contractValue || 0).toLocaleString('en-IN')}</Text>
-              </View>
-              <View style={styles.miniMetric}>
-                <Text style={styles.miniLabel}>Total Expenses</Text>
-                <Text style={[styles.miniValue, { color: Colors.danger }]}>₹{(activeSite.totalExpenses || 0).toLocaleString('en-IN')}</Text>
-              </View>
-              <View style={styles.miniMetric}>
-                <Text style={styles.miniLabel}>Estimated Profit</Text>
-                <Text style={[styles.miniValue, { color: Colors.success }]}>₹{(activeSite.profit || 0).toLocaleString('en-IN')}</Text>
-              </View>
+            {/* Owner View: Active Site Spotlight */}
+            {activeSite ? (
+              <Card style={styles.activeSiteCard} onPress={() => navigation.navigate('SiteDetail', { siteId: activeSite._id })}>
+                <View style={styles.cardHeader}>
+                  <View>
+                    <Text style={styles.cardTag}>ACTIVE SITE SPOTLIGHT</Text>
+                    <Text style={styles.siteTitle}>{activeSite.siteName}</Text>
+                    <Text style={styles.clientText}>{activeSite.clientName} (WO: {activeSite.workOrderNumber})</Text>
+                  </View>
+                  <Badge label={activeSite.status} variant={activeSite.status === 'ACTIVE' ? 'success' : 'danger'} />
+                </View>
+
+                <View style={styles.metricsRow}>
+                  <View style={styles.miniMetric}>
+                    <Text style={styles.miniLabel}>Contract Value</Text>
+                    <Text style={styles.miniValue}>₹{(activeSite.contractValue || 0).toLocaleString('en-IN')}</Text>
+                  </View>
+                  <View style={styles.miniMetric}>
+                    <Text style={styles.miniLabel}>Total Expenses</Text>
+                    <Text style={[styles.miniValue, { color: Colors.danger }]}>₹{(activeSite.totalExpenses || 0).toLocaleString('en-IN')}</Text>
+                  </View>
+                  <View style={styles.miniMetric}>
+                    <Text style={styles.miniLabel}>Estimated Profit</Text>
+                    <Text style={[styles.miniValue, { color: Colors.success }]}>₹{(activeSite.profit || 0).toLocaleString('en-IN')}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.quickNavRow}>
+                  <TouchableOpacity style={styles.quickNavBtn} onPress={() => navigation.navigate('ItemSummary', { siteId: activeSite._id })}>
+                    <Text style={styles.quickNavText}>📊 Item Summary</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickNavBtn} onPress={() => navigation.navigate('MeasurementBook', { siteId: activeSite._id })}>
+                    <Text style={styles.quickNavText}>📐 Cost/MB Summary</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickNavBtn} onPress={() => navigation.navigate('ActivityLog', { siteId: activeSite._id })}>
+                    <Text style={styles.quickNavText}>📜 Activity Log</Text>
+                  </TouchableOpacity>
+                </View>
+              </Card>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <View style={styles.statsGrid}>
+              <StatCard title="MY ASSIGNED SITES" value={`${sites.length}`} subtitle={`${activeSitesCount} Active Site(s)`} type="contract" />
             </View>
 
-            {/* Quick Action Navigation Pills */}
-            <View style={styles.quickNavRow}>
-              <TouchableOpacity style={styles.quickNavBtn} onPress={() => navigation.navigate('ItemSummary', { siteId: activeSite._id })}>
-                <Text style={styles.quickNavText}>📊 Item Summary</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.quickNavBtn} onPress={() => navigation.navigate('MeasurementBook', { siteId: activeSite._id })}>
-                <Text style={styles.quickNavText}>📐 Cost/MB Summary</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.quickNavBtn} onPress={() => navigation.navigate('ActivityLog', { siteId: activeSite._id })}>
-                <Text style={styles.quickNavText}>📜 Activity Log</Text>
-              </TouchableOpacity>
+            {/* Supervisor View: List of Assigned Sites */}
+            <View style={{ marginVertical: 8 }}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>My Assigned Construction Sites ({sites.length})</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('SitesTab')}>
+                  <Text style={styles.seeAllText}>View All →</Text>
+                </TouchableOpacity>
+              </View>
+
+              {sites.length === 0 ? (
+                <Card style={{ alignItems: 'center', padding: 20 }}>
+                  <Text style={{ color: Colors.textSecondary }}>No sites assigned yet. Contact your owner for site assignment.</Text>
+                </Card>
+              ) : (
+                sites.map((st) => (
+                  <Card
+                    key={st._id}
+                    style={[styles.activeSiteCard, activeSite?._id === st._id && { borderColor: Colors.accent, borderWidth: 1.5 }]}
+                    onPress={() => {
+                      setActiveSite(st);
+                      navigation.navigate('SiteDetail', { siteId: st._id });
+                    }}
+                  >
+                    <View style={styles.cardHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.cardTag}>{activeSite?._id === st._id ? '🟢 CURRENT ACTIVE WORKSPACE' : '🏗️ ASSIGNED SITE'}</Text>
+                        <Text style={styles.siteTitle}>{st.siteName}</Text>
+                        <Text style={styles.clientText}>{st.clientName} • WO: {st.workOrderNumber}</Text>
+                        {st.location ? <Text style={{ color: Colors.textMuted, fontSize: 11, marginTop: 2 }}>📍 {st.location}</Text> : null}
+                      </View>
+                      <Badge label={st.status} variant={st.status === 'ACTIVE' ? 'success' : 'danger'} />
+                    </View>
+
+                    <View style={styles.quickNavRow}>
+                      <TouchableOpacity style={styles.quickNavBtn} onPress={() => { setActiveSite(st); navigation.navigate('AddExpense', { siteId: st._id }); }}>
+                        <Text style={styles.quickNavText}>➕ Add Expense</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.quickNavBtn} onPress={() => { setActiveSite(st); navigation.navigate('SiteImages', { siteId: st._id, siteName: st.siteName }); }}>
+                        <Text style={styles.quickNavText}>📷 Photos</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.quickNavBtn} onPress={() => { setActiveSite(st); navigation.navigate('SiteDetail', { siteId: st._id }); }}>
+                        <Text style={styles.quickNavText}>View Details ➔</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </Card>
+                ))
+              )}
             </View>
-          </Card>
-        ) : null}
+          </>
+        )}
 
         {/* Recent Site Expenses Feed */}
         <View style={styles.sectionHeader}>
@@ -136,7 +194,7 @@ export const HomeScreen = ({ navigation }: any) => {
           </Card>
         ) : (
           recentExpenses.map((item) => {
-            const addedBy = typeof item.createdBy === 'object' ? item.createdBy.name : 'Supervisor';
+            const addedBy = item.createdBy && typeof item.createdBy === 'object' ? (item.createdBy.name || 'Supervisor') : (typeof item.createdBy === 'string' ? item.createdBy : 'Supervisor');
             return (
               <Card key={item._id} style={styles.expenseItemRow} onPress={() => navigation.navigate('ExpenseDetail', { expenseId: item._id })}>
                 <View style={styles.expenseLeft}>

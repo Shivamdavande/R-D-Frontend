@@ -155,7 +155,7 @@ export const AddExpenseScreen = ({ navigation, route }: any) => {
 
   return (
     <View style={styles.container}>
-      <Header title="Add Site Expense" subtitle="Minimal & fast expense entry" navigation={navigation} showSiteSelector={false} />
+      <Header title="Add Site Item & Material" subtitle="Enter Item Name, Quantity & Price / Rate" navigation={navigation} showSiteSelector={false} />
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Site Selector */}

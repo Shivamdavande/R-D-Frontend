@@ -46,32 +46,38 @@ export const MeasurementBookScreen = ({ navigation }: any) => {
           data={mbData}
           keyExtractor={(item, index) => `${item.itemName}-${index}`}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={loadMB} tintColor={Colors.accent} />}
-          renderItem={({ item, index }) => (
-            <Card style={styles.card}>
-              <View style={styles.itemHeader}>
-                <Text style={styles.itemNum}>#{index + 1}</Text>
-                <Text style={styles.itemName}>{item.itemName}</Text>
-                <Text style={styles.catBadge}>{item.category}</Text>
-              </View>
+          renderItem={({ item, index }) => {
+            const addedByStr = item.addedByUsers && item.addedByUsers.length > 0 ? item.addedByUsers.join(', ') : 'Supervisor';
+            return (
+              <Card style={styles.card}>
+                <View style={styles.itemHeader}>
+                  <Text style={styles.itemNum}>#{index + 1}</Text>
+                  <Text style={styles.itemName}>{item.itemName}</Text>
+                  <Text style={styles.catBadge}>{item.category}</Text>
+                </View>
 
-              <View style={styles.grid}>
-                <View style={styles.col}>
-                  <Text style={styles.lbl}>QUANTITY</Text>
-                  <Text style={styles.val}>{item.totalQuantity} {item.unit}</Text>
+                <View style={styles.grid}>
+                  <View style={styles.col}>
+                    <Text style={styles.lbl}>QUANTITY</Text>
+                    <Text style={styles.val}>{item.totalQuantity} {item.unit}</Text>
+                  </View>
+                  <View style={styles.col}>
+                    <Text style={styles.lbl}>APPLICABLE RATE</Text>
+                    <Text style={styles.val}>₹{item.averageRate.toLocaleString('en-IN')}</Text>
+                  </View>
+                  <View style={styles.col}>
+                    <Text style={styles.lbl}>TOTAL AMOUNT</Text>
+                    <Text style={styles.amountVal}>₹{item.totalCost.toLocaleString('en-IN')}</Text>
+                  </View>
                 </View>
-                <View style={styles.col}>
-                  <Text style={styles.lbl}>APPLICABLE RATE</Text>
-                  <Text style={styles.val}>₹{item.averageRate.toLocaleString('en-IN')}</Text>
-                </View>
-                <View style={styles.col}>
-                  <Text style={styles.lbl}>TOTAL AMOUNT</Text>
-                  <Text style={styles.amountVal}>₹{item.totalCost.toLocaleString('en-IN')}</Text>
-                </View>
-              </View>
 
-              <Text style={styles.remarksText}>{item.remarks}</Text>
-            </Card>
-          )}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                  <Text style={styles.remarksText}>{item.remarks}</Text>
+                  <Text style={{ color: Colors.accent, fontSize: 10, fontWeight: '700' }}>👤 Added by: {addedByStr}</Text>
+                </View>
+              </Card>
+            );
+          }}
         />
       </View>
     </View>

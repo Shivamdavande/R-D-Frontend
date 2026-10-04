@@ -4,7 +4,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity, LogBox } from 'react-native';
+
+LogBox.ignoreLogs([
+  '"shadow*" style props are deprecated',
+  'props.pointerEvents is deprecated'
+]);
 
 // Theme & Contexts
 import { Colors } from './src/theme/colors';
@@ -15,11 +20,14 @@ import { NetworkProvider } from './src/context/NetworkContext';
 // Screens
 import { LoginScreen } from './src/screens/auth/LoginScreen';
 import { RegisterScreen } from './src/screens/auth/RegisterScreen';
+import { OtpVerificationScreen } from './src/screens/auth/OtpVerificationScreen';
+import { ForgotPasswordScreen } from './src/screens/auth/ForgotPasswordScreen';
 import { HomeScreen } from './src/screens/dashboard/HomeScreen';
 import { SitesListScreen } from './src/screens/sites/SitesListScreen';
 import { CreateSiteScreen } from './src/screens/sites/CreateSiteScreen';
 import { SiteDetailScreen } from './src/screens/sites/SiteDetailScreen';
 import { SiteMembersScreen } from './src/screens/sites/SiteMembersScreen';
+import { SiteImagesScreen } from './src/screens/sites/SiteImagesScreen';
 import { AddExpenseScreen } from './src/screens/expenses/AddExpenseScreen';
 import { ExpenseListScreen } from './src/screens/expenses/ExpenseListScreen';
 import { ExpenseDetailScreen } from './src/screens/expenses/ExpenseDetailScreen';
@@ -35,6 +43,8 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function BottomTabNavigator() {
+  const { isOwner } = useAuth();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -73,14 +83,16 @@ function BottomTabNavigator() {
           )
         }}
       />
-      <Tab.Screen
-        name="ReportsTab"
-        component={FinalReportScreen}
-        options={{
-          tabBarLabel: 'Reports',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 18 }}>📊</Text>
-        }}
-      />
+      {isOwner && (
+        <Tab.Screen
+          name="ReportsTab"
+          component={FinalReportScreen}
+          options={{
+            tabBarLabel: 'Reports',
+            tabBarIcon: ({ color }) => <Text style={{ fontSize: 18 }}>📊</Text>
+          }}
+        />
+      )}
       <Tab.Screen
         name="ProfileTab"
         component={ProfileScreen}
@@ -99,8 +111,8 @@ function NavigationStack() {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={{ color: Colors.accent, fontSize: 32, fontWeight: '900' }}>R2R</Text>
-        <Text style={{ color: Colors.textPrimary, fontSize: 16, fontWeight: '700', marginTop: 8 }}>Raw to Refined</Text>
+        <Text style={{ color: Colors.accent, fontSize: 32, fontWeight: '900' }}>R&D</Text>
+        <Text style={{ color: Colors.textPrimary, fontSize: 16, fontWeight: '700', marginTop: 8 }}>R&D CONSTRUCTIONS</Text>
         <Text style={{ color: Colors.textSecondary, fontSize: 12, marginTop: 4 }}>Loading Contractor Workspace...</Text>
       </View>
     );
@@ -112,6 +124,8 @@ function NavigationStack() {
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="OtpVerification" component={OtpVerificationScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         </>
       ) : (
         <>
@@ -120,6 +134,7 @@ function NavigationStack() {
           <Stack.Screen name="CreateSite" component={CreateSiteScreen} />
           <Stack.Screen name="SiteDetail" component={SiteDetailScreen} />
           <Stack.Screen name="SiteMembers" component={SiteMembersScreen} />
+          <Stack.Screen name="SiteImages" component={SiteImagesScreen} />
           <Stack.Screen name="AddExpense" component={AddExpenseScreen} />
           <Stack.Screen name="ExpenseList" component={ExpenseListScreen} />
           <Stack.Screen name="ExpenseDetail" component={ExpenseDetailScreen} />
@@ -160,7 +175,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   tabBar: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FFFFFF',
     borderTopColor: Colors.surfaceBorder,
     borderTopWidth: 1,
     height: 60,

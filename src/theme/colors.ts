@@ -1,50 +1,54 @@
 export const Colors = {
-  // Brand Colors - R&D CONSTRUCTIONS
-  primary: '#0A0E17',      // Deep obsidian slate background
-  primaryLight: '#141C2E', // Premium card surface
-  accent: '#F59E0B',       // Construction Amber Gold Accent
-  accentHover: '#D97706',
-  blueAccent: '#3B82F6',   // Electric Azure Blue
+  // Brand Colors - Professional Soft Blue Theme
+  primary: '#2563EB',        // Soft Professional Blue
+  primaryLight: '#EFF6FF',   // Soft Tint Background
+  primaryDark: '#1D4ED8',    // Deep Blue
+  accent: '#2563EB',         // Primary Action Accent
+  accentHover: '#1D4ED8',
   
-  // Status & Utility Colors
-  success: '#10B981',      // Profit / Synced emerald green
-  successLight: 'rgba(16, 185, 129, 0.12)',
-  warning: '#F59E0B',      // Pending Sync amber
-  warningLight: 'rgba(245, 158, 11, 0.12)',
-  danger: '#EF4444',       // Closed / Delete red
-  dangerLight: 'rgba(239, 68, 68, 0.12)',
-  info: '#3B82F6',         // Information blue
-  infoLight: 'rgba(59, 130, 246, 0.12)',
+  // Status & Utility Colors (Soft Backgrounds + Dark Text)
+  success: '#16A34A',        // Profit / Success Green
+  successLight: '#F0FDF4',   // Soft Green Tint
+  warning: '#D97706',        // Pending / Alert Orange
+  warningLight: '#FFFBEB',   // Soft Orange Tint
+  danger: '#DC2626',         // Loss / Delete Red
+  dangerLight: '#FEF2F2',    // Soft Red Tint
+  info: '#2563EB',           // Info Blue
+  infoLight: '#EFF6FF',      // Soft Blue Tint
 
-  // Background & Neutral Colors
-  background: '#070A10',   // Minimal dark app background
-  surface: '#111827',      // Sleek card surface
-  surfaceBorder: '#1F2937',// Crisp border
+  // Background & Surface Colors (LIGHT THEME)
+  background: '#F8FAFC',     // Light Minimal Main App Background
+  surface: '#FFFFFF',        // Pure White Card Surface
+  surfaceSecondary: '#F1F5F9',// Light Gray Secondary Surface
+  surfaceBorder: '#E2E8F0',  // Soft Crisp Gray Border
+  lightBorder: '#F1F5F9',
   
-  // Text Colors
-  textPrimary: '#FFFFFF',  // Pure crisp white text
-  textSecondary: '#9CA3AF',// Soft grey subtitles
-  textMuted: '#6B7280',    // Muted placeholders
+  // Typography Colors
+  textPrimary: '#0F172A',    // Dark Navy Main Text
+  textSecondary: '#475569',  // Medium Slate Subtitles
+  textMuted: '#64748B',      // Muted Secondary Text
+  textDisabled: '#94A3B8',   // Disabled Text
 
-  // Input & Buttons
-  inputBg: '#1F2937',
-  inputBorder: '#374151',
-  buttonPrimary: '#F59E0B',
-  buttonPrimaryText: '#0A0E17',
+  // Input & Controls
+  inputBg: '#FFFFFF',
+  inputBorder: '#CBD5E1',
+  inputFocusBorder: '#2563EB',
+  buttonPrimary: '#2563EB',
+  buttonPrimaryText: '#FFFFFF',
 
-  // Category Badges
+  // Category Badges (Soft Pastel Tints with Dark Text)
   categories: {
-    Material: '#3B82F6',
-    Labour: '#EC4899',
-    Transport: '#8B5CF6',
-    Machinery: '#F59E0B',
-    Fuel: '#EF4444',
-    Electrical: '#06B6D4',
-    Plumbing: '#10B981',
-    Tools: '#6366F1',
-    Safety: '#D97706',
-    'Food/Refreshment': '#14B8A6',
-    Accommodation: '#A855F7',
-    Miscellaneous: '#6B7280'
+    Material: '#2563EB',
+    Labour: '#DB2777',
+    Transport: '#7C3AED',
+    Machinery: '#D97706',
+    Fuel: '#DC2626',
+    Electrical: '#0891B2',
+    Plumbing: '#16A34A',
+    Tools: '#4F46E5',
+    Safety: '#CA8A04',
+    'Food/Refreshment': '#0D9488',
+    Accommodation: '#9333EA',
+    Miscellaneous: '#64748B'
   }
 };

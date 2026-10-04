@@ -75,6 +75,7 @@ export interface ItemSummary {
   totalCost: number;
   averageRate: number;
   entryCount: number;
+  addedByUsers?: string[];
 }
 
 export interface ActivityLogItem {
@@ -88,3 +89,15 @@ export interface ActivityLogItem {
   previousValues?: any;
   newValues?: any;
 }
+
+export interface SiteImage {
+  _id: string;
+  siteId: string;
+  imageUrl: string;
+  imageKitFileId?: string;
+  fileName?: string;
+  uploadedBy: User | { _id: string; name: string; email: string; role: UserRole };
+  uploadedAt: string;
+  createdAt?: string;
+}
+

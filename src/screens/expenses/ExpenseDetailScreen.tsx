@@ -62,8 +62,9 @@ export const ExpenseDetailScreen = ({ route, navigation }: any) => {
     );
   }
 
-  const createdByUser = typeof expense.createdBy === 'object' ? expense.createdBy.name : 'Supervisor';
-  const createdByEmail = typeof expense.createdBy === 'object' ? expense.createdBy.email : '';
+  const createdByUser = expense.createdBy && typeof expense.createdBy === 'object' ? (expense.createdBy.name || 'Supervisor') : (typeof expense.createdBy === 'string' ? expense.createdBy : 'Supervisor');
+  const createdByEmail = expense.createdBy && typeof expense.createdBy === 'object' ? (expense.createdBy.email || '') : '';
+  const createdByRole = expense.createdBy && typeof expense.createdBy === 'object' ? (expense.createdBy.role || '') : '';
 
   return (
     <View style={styles.container}>
@@ -120,8 +121,8 @@ export const ExpenseDetailScreen = ({ route, navigation }: any) => {
 
           {/* User Attribution */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.userLabel}>LOGGED BY:</Text>
-            <Text style={styles.userVal}>{createdByUser} {createdByEmail ? `(${createdByEmail})` : ''}</Text>
+            <Text style={styles.userLabel}>👤 ADDED BY:</Text>
+            <Text style={styles.userVal}>{createdByUser} {createdByRole ? `[${createdByRole}]` : ''} {createdByEmail ? `(${createdByEmail})` : ''}</Text>
           </View>
         </Card>
 

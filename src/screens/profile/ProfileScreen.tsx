@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Header } from '../../components/common/Header';
 import { Card } from '../../components/common/Card';
@@ -10,11 +10,25 @@ import { useAuth } from '../../context/AuthContext';
 export const ProfileScreen = ({ navigation }: any) => {
   const { user, logout, isOwner } = useAuth();
 
-  const handleLogout = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: logout }
-    ]);
+  const handleLogout = async () => {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('Are you sure you want to sign out of workspace?')) {
+        await logout();
+      } else {
+        await logout();
+      }
+    } else {
+      Alert.alert('Sign Out', 'Are you sure you want to sign out of workspace?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+          }
+        }
+      ]);
+    }
   };
 
   return (
@@ -37,7 +51,7 @@ export const ProfileScreen = ({ navigation }: any) => {
         {/* Company Identity */}
         <Card>
           <Text style={styles.cardSectionTitle}>COMPANY IDENTITY</Text>
-          <Text style={styles.companyName}>R2R – Raw to Refined</Text>
+          <Text style={styles.companyName}>R&D CONSTRUCTIONS</Text>
           <Text style={styles.companyDesc}>Civil & Government Contractor Site Expense & P&L Management System</Text>
         </Card>
 

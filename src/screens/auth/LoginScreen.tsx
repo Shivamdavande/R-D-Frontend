@@ -7,40 +7,68 @@ import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 
 export const LoginScreen = ({ navigation }: any) => {
-  const { login, demoLogin } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [serverIp, setServerIp] = useState('');
   const [showConfig, setShowConfig] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (userEmail?: string, userPass?: string, role?: 'OWNER' | 'SUPERVISOR') => {
-    const targetEmail = userEmail || email;
-    const targetPass = userPass || password;
-
-    if (!targetEmail || !targetPass) {
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Please enter both email and password.');
       return;
     }
 
     setLoading(true);
     try {
-      await login(targetEmail, targetPass);
+      const res = await login(email.trim(), password.trim());
+      if (res?.requiresOtp) {
+        navigation.navigate('OtpVerification', {
+          email: res.email || email.trim(),
+          devOtp: res.devOtp
+        });
+      }
     } catch (err: any) {
-      // Catch network connection error on physical device and offer instant local mobile mode
+      const errMsg = err.message || '';
+      const devOtp = err.response?.data?.devOtp || err.data?.devOtp;
+      if (errMsg.includes('not verified') || err.requiresOtp || err.data?.requiresOtp) {
+        Alert.alert(
+          'Email Verification Required 📩',
+          'Your account email address is not verified yet. A 6-digit OTP code has been sent to your email.',
+          [
+            {
+              text: 'Verify OTP Now',
+              onPress: () => navigation.navigate('OtpVerification', {
+                email: email.trim(),
+                devOtp
+              })
+            },
+            { text: 'Cancel', style: 'cancel' }
+          ]
+        );
+        return;
+      }
+      if (
+        errMsg.toLowerCase().includes('invalid email') ||
+        errMsg.toLowerCase().includes('invalid credentials') ||
+        errMsg.toLowerCase().includes('deactivated') ||
+        errMsg.toLowerCase().includes('required')
+      ) {
+        Alert.alert('Login Failed ❌', errMsg);
+        return;
+      }
+
+      // Catch network connection error
       Alert.alert(
         'Server Network Notice 🌐',
-        `Unable to reach laptop backend at default address.\n\nWould you like to enter in Mobile Offline Demo Mode or configure your Laptop Wi-Fi IP?`,
+        `Unable to reach backend server.\n(${errMsg || 'Network timeout'})\n\nPlease check your internet connection or configure your Server URL.`,
         [
           {
-            text: '🚀 Continue Mobile Demo Mode',
-            onPress: () => demoLogin(role || (targetEmail.includes('owner') ? 'OWNER' : 'SUPERVISOR'))
-          },
-          {
-            text: '⚙️ Configure Laptop IP',
+            text: '⚙️ Configure Server URL',
             onPress: () => setShowConfig(true)
           },
-          { text: 'Cancel', style: 'cancel' }
+          { text: 'OK', style: 'cancel' }
         ]
       );
     } finally {
@@ -62,7 +90,14 @@ export const LoginScreen = ({ navigation }: any) => {
     }
 
     await AsyncStorage.setItem('@r2r_custom_api_url', formatted);
-    Alert.alert('IP Saved ✅', `Server URL set to:\n${formatted}`);
+    Alert.alert('URL Saved ✅', `Server URL set to:\n${formatted}`);
+    setShowConfig(false);
+  };
+
+  const handleResetDefaultUrl = async () => {
+    await AsyncStorage.removeItem('@r2r_custom_api_url');
+    setServerIp('');
+    Alert.alert('Reset Complete ✅', 'Reset back to default Cloud API Server:\nhttps://r-d-q9ix.onrender.com/api');
     setShowConfig(false);
   };
 
@@ -81,7 +116,7 @@ export const LoginScreen = ({ navigation }: any) => {
 
         <Input
           label="Email Address"
-          placeholder="e.g. owner@r2r.com or raj@r2r.com"
+          placeholder="e.g. owner@randd.com or raj@randd.com"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -96,19 +131,18 @@ export const LoginScreen = ({ navigation }: any) => {
           secureTextEntry
         />
 
+        <TouchableOpacity
+          onPress={() => navigation.navigate('ForgotPassword')}
+          style={{ alignSelf: 'flex-end', marginTop: -6, marginBottom: 14 }}
+        >
+          <Text style={{ color: Colors.accent, fontSize: 12, fontWeight: '700' }}>Forgot Password?</Text>
+        </TouchableOpacity>
+
         <Button
           title="SIGN IN"
           onPress={() => handleLogin()}
           loading={loading}
           style={styles.submitBtn}
-        />
-
-        {/* 1-Tap Mobile Mode Button */}
-        <Button
-          title="⚡ INSTANT MOBILE PREVIEW MODE"
-          onPress={() => demoLogin('OWNER')}
-          variant="outline"
-          style={{ marginTop: 10 }}
         />
 
         <TouchableOpacity
@@ -119,53 +153,30 @@ export const LoginScreen = ({ navigation }: any) => {
         </TouchableOpacity>
       </View>
 
-      {/* Server IP Config Toggle */}
-      <TouchableOpacity onPress={() => setShowConfig(!showConfig)} style={{ marginTop: 14, alignItems: 'center' }}>
-        <Text style={{ color: Colors.textMuted, fontSize: 11 }}>⚙️ {showConfig ? 'Hide' : 'Configure Laptop Wi-Fi IP for Real Device'}</Text>
+      {/* Server IP / URL Config Toggle */}
+      <TouchableOpacity onPress={() => setShowConfig(!showConfig)} style={{ marginTop: 20, alignItems: 'center' }}>
+        <Text style={{ color: Colors.textMuted, fontSize: 11 }}>⚙️ {showConfig ? 'Hide Server URL Settings' : 'Configure Server URL'}</Text>
       </TouchableOpacity>
 
       {showConfig && (
         <View style={styles.configBox}>
-          <Text style={{ color: Colors.accent, fontSize: 11, fontWeight: '800', marginBottom: 6 }}>ENTER LAPTOP WI-FI IP:</Text>
+          <Text style={{ color: Colors.accent, fontSize: 11, fontWeight: '800', marginBottom: 6 }}>ENTER CUSTOM SERVER URL OR LAPTOP WI-FI IP:</Text>
           <Input
-            placeholder="e.g. 192.168.1.15"
+            placeholder="e.g. https://r-d-q9ix.onrender.com or 192.168.1.15"
             value={serverIp}
             onChangeText={setServerIp}
             containerStyle={{ marginBottom: 8 }}
           />
-          <Button title="SAVE LAPTOP SERVER IP" onPress={handleSaveIp} size="small" />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Button title="SAVE SERVER URL" onPress={handleSaveIp} size="small" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button title="RESET TO CLOUD API" onPress={handleResetDefaultUrl} variant="outline" size="small" />
+            </View>
+          </View>
         </View>
       )}
-
-      {/* Quick Demo Login Shortcut Box */}
-      <View style={styles.demoBox}>
-        <Text style={styles.demoTitle}>🚀 QUICK DEMO ONE-TAP LOGINS:</Text>
-        <Text style={styles.demoSub}>Tap any role to immediately login:</Text>
-
-        <TouchableOpacity
-          style={styles.demoBtn}
-          onPress={() => handleLogin('owner@r2r.com', 'OwnerPassword123!', 'OWNER')}
-        >
-          <Text style={styles.demoRole}>👑 OWNER (Admin) - Ghanshyam</Text>
-          <Text style={styles.demoEmail}>owner@r2r.com (Full site control, closing & PDF export)</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.demoBtn}
-          onPress={() => handleLogin('raj@r2r.com', 'RajPassword123!', 'SUPERVISOR')}
-        >
-          <Text style={styles.demoRole}>👷 SUPERVISOR 1 - Raj</Text>
-          <Text style={styles.demoEmail}>raj@r2r.com (Assigned site expenses & quantity entry)</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.demoBtn}
-          onPress={() => handleLogin('amit@r2r.com', 'AmitPassword123!', 'SUPERVISOR')}
-        >
-          <Text style={styles.demoRole}>👷 SUPERVISOR 2 - Amit</Text>
-          <Text style={styles.demoEmail}>amit@r2r.com (Collaborating site supervisor)</Text>
-        </TouchableOpacity>
-      </View>
     </ScrollView>
   );
 };
@@ -232,42 +243,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.surfaceBorder,
     marginTop: 10
-  },
-  demoBox: {
-    marginTop: 20,
-    backgroundColor: Colors.primaryLight,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.accent
-  },
-  demoTitle: {
-    color: Colors.accent,
-    fontSize: 13,
-    fontWeight: '800'
-  },
-  demoSub: {
-    color: Colors.textSecondary,
-    fontSize: 11,
-    marginBottom: 12,
-    marginTop: 2
-  },
-  demoBtn: {
-    backgroundColor: Colors.surface,
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.surfaceBorder,
-    marginBottom: 8
-  },
-  demoRole: {
-    color: Colors.textPrimary,
-    fontSize: 12,
-    fontWeight: '700'
-  },
-  demoEmail: {
-    color: Colors.textMuted,
-    fontSize: 10,
-    marginTop: 2
   }
 });
