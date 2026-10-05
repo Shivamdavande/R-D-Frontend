@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Header } from '../../components/common/Header';
 import { StatCard } from '../../components/common/StatCard';
@@ -10,9 +10,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useSites } from '../../context/SiteContext';
 import api from '../../services/api';
 import { Expense } from '../../types';
+import { customAlert } from '../../utils/alertHelper';
 
 export const HomeScreen = ({ navigation }: any) => {
-  const { user, isOwner } = useAuth();
+  const { user, isOwner, token } = useAuth();
   const { sites, activeSite, setActiveSite, refreshSites } = useSites();
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -22,7 +23,7 @@ export const HomeScreen = ({ navigation }: any) => {
   }, [activeSite]);
 
   const loadHomeData = async () => {
-    if (!activeSite) return;
+    if (!activeSite || (token && token.startsWith('demo_'))) return;
     try {
       const res = await api.get(`/sites/${activeSite._id}/expenses?limit=5`);
       if (res.data?.success) {
@@ -47,6 +48,32 @@ export const HomeScreen = ({ navigation }: any) => {
   const totalExpVal = sites.reduce((sum, s) => sum + (s.totalExpenses || 0), 0);
   const overallProfit = totalContractVal > 0 ? totalContractVal - totalExpVal : 0;
   const overallProfitPct = totalContractVal > 0 ? ((overallProfit / totalContractVal) * 100).toFixed(1) : '0';
+
+  const handleDeleteExpense = (item: Expense) => {
+    customAlert(
+      'Delete Expense 🗑️',
+      `Are you sure you want to delete expense "${item.itemName}" (₹${item.amount.toLocaleString('en-IN')})?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await api.delete(`/expenses/${item._id}`);
+              if (res.data?.success) {
+                customAlert('Deleted ✅', 'Expense record deleted.');
+                await loadHomeData();
+                await refreshSites();
+              }
+            } catch (err: any) {
+              customAlert('Error', err.message || 'Failed to delete expense.');
+            }
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -207,7 +234,19 @@ export const HomeScreen = ({ navigation }: any) => {
                 </View>
                 <View style={styles.expenseRight}>
                   <Text style={styles.amountText}>₹{item.amount.toLocaleString('en-IN')}</Text>
-                  <Text style={styles.dateText}>{new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                    <Text style={styles.dateText}>{new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</Text>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleDeleteExpense(item);
+                      }}
+                      style={{ padding: 2 }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Text style={{ fontSize: 14 }}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </Card>
             );

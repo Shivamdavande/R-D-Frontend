@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../services/api';
+import api, { setCachedToken, setOnUnauthorizedCallback } from '../services/api';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -27,6 +27,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    setOnUnauthorizedCallback(() => {
+      logout();
+    });
     loadStoredAuth();
   }, []);
 
@@ -37,10 +40,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (storedToken && storedUser) {
         setToken(storedToken);
+        setCachedToken(storedToken);
         const parsed = JSON.parse(storedUser);
         setUser(parsed);
         // Instant UI unlock - never block app startup for network
         setIsLoading(false);
+
+        // Demo tokens don't call live backend me endpoint
+        if (storedToken.startsWith('demo_')) {
+          return;
+        }
 
         // Verify/refresh user data in background silently
         api.get('/auth/me').then(async (res) => {
@@ -48,8 +57,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(res.data.user);
             await AsyncStorage.setItem('@r2r_user_data', JSON.stringify(res.data.user));
           }
-        }).catch(() => {
-          // Silently continue with cached user profile
+        }).catch((err) => {
+          if (err?.status === 401 || err?.response?.status === 401) {
+            logout();
+          }
         });
         return;
       }
@@ -67,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (res.data?.success && res.data.token) {
         const { token, user } = res.data;
         setToken(token);
+        setCachedToken(token);
         setUser(user);
         await AsyncStorage.setItem('@r2r_jwt_token', token);
         await AsyncStorage.setItem('@r2r_user_data', JSON.stringify(user));
@@ -90,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       const dummyToken = 'demo_offline_jwt_token_12345';
       setToken(dummyToken);
+      setCachedToken(dummyToken);
       setUser(dummyUser);
       await AsyncStorage.setItem('@r2r_jwt_token', dummyToken);
       await AsyncStorage.setItem('@r2r_user_data', JSON.stringify(dummyUser));
@@ -103,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (res.data?.success && res.data.token) {
       const { token, user } = res.data;
       setToken(token);
+      setCachedToken(token);
       setUser(user);
       await AsyncStorage.setItem('@r2r_jwt_token', token);
       await AsyncStorage.setItem('@r2r_user_data', JSON.stringify(user));
@@ -117,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (res.data?.success && res.data.token) {
         const { token, user } = res.data;
         setToken(token);
+        setCachedToken(token);
         setUser(user);
         await AsyncStorage.setItem('@r2r_jwt_token', token);
         await AsyncStorage.setItem('@r2r_user_data', JSON.stringify(user));
@@ -142,6 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (res.data?.success && res.data.token) {
       const { token, user } = res.data;
       setToken(token);
+      setCachedToken(token);
       setUser(user);
       await AsyncStorage.setItem('@r2r_jwt_token', token);
       await AsyncStorage.setItem('@r2r_user_data', JSON.stringify(user));
@@ -160,6 +176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) {
       console.error('Error during logout:', e);
     } finally {
+      setCachedToken(null);
       setToken(null);
       setUser(null);
     }
@@ -179,8 +196,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         forgotPassword,
         resetPassword,
         logout,
-        isOwner: user?.role === 'OWNER',
-        isSupervisor: user?.role === 'SUPERVISOR' || user?.role === 'OWNER'
+        isOwner: user?.role?.toUpperCase() === 'OWNER',
+        isSupervisor: ['SUPERVISOR', 'SUPERWISER', 'OWNER'].includes(user?.role?.toUpperCase() || '')
       }}
     >
       {children}

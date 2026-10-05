@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Header } from '../../components/common/Header';
 import { Card } from '../../components/common/Card';
@@ -7,14 +7,38 @@ import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { useSites } from '../../context/SiteContext';
 import { useAuth } from '../../context/AuthContext';
+import { customAlert } from '../../utils/alertHelper';
 
 import { Input } from '../../components/common/Input';
 
 export const SitesListScreen = ({ navigation }: any) => {
   const { isOwner } = useAuth();
-  const { sites, activeSite, setActiveSite, refreshSites, isLoading } = useSites();
+  const { sites, activeSite, setActiveSite, refreshSites, deleteSite, isLoading } = useSites();
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'CLOSED'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleDeleteSite = (site: any) => {
+    customAlert(
+      'Delete Site 🗑️',
+      `Are you sure you want to delete site "${site.siteName}"? All expenses, photos, and team logs will be deleted permanently.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteSite(site._id);
+              await refreshSites();
+              customAlert('Site Deleted ✅', `Site "${site.siteName}" has been deleted.`);
+            } catch (err: any) {
+              customAlert('Error', err.message || 'Failed to delete site.');
+            }
+          }
+        }
+      ]
+    );
+  };
 
   const filteredSites = sites.filter(s => {
     const matchesStatus = filter === 'ALL' || s.status === filter;
@@ -98,7 +122,23 @@ export const SitesListScreen = ({ navigation }: any) => {
                     <Text style={styles.siteName}>{item.siteName}</Text>
                     <Text style={styles.clientName}>{item.clientName} • WO: {item.workOrderNumber}</Text>
                   </View>
-                  <Badge label={item.status} variant={item.status === 'ACTIVE' ? 'success' : 'danger'} />
+                  <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                    <Badge label={item.status} variant={item.status === 'ACTIVE' ? 'success' : 'danger'} />
+                    {isOwner && (
+                      <TouchableOpacity
+                        onPress={(e: any) => {
+                          if (e && typeof e.stopPropagation === 'function') {
+                            e.stopPropagation();
+                          }
+                          handleDeleteSite(item);
+                        }}
+                        style={{ padding: 4 }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <Text style={{ fontSize: 16 }}>🗑️</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
 
                 {item.location ? <Text style={styles.locationText}>📍 {item.location}</Text> : null}

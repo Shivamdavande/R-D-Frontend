@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { Colors } from '../../theme/colors';
-import { Input } from '../../components/common/Input';
-import { Button } from '../../components/common/Button';
-import { useAuth } from '../../context/AuthContext';
+import { OtpInput } from '../../components/common/OtpInput';
 
 export const OtpVerificationScreen = ({ route, navigation }: any) => {
   const { email } = route.params || {};
@@ -26,15 +24,16 @@ export const OtpVerificationScreen = ({ route, navigation }: any) => {
     };
   }, [cooldown]);
 
-  const handleVerify = async () => {
-    if (!otp || otp.trim().length < 6) {
+  const handleVerify = async (codeToVerify?: string) => {
+    const finalOtp = codeToVerify || otp;
+    if (!finalOtp || finalOtp.trim().length < 6) {
       Alert.alert('Invalid Input', 'Please enter the complete 6-digit OTP code sent to your email.');
       return;
     }
 
     setLoading(true);
     try {
-      const res = await verifyOtp(email, otp.trim());
+      const res = await verifyOtp(email, finalOtp.trim());
       if (res?.success) {
         Alert.alert('Success ✅', 'Email verified successfully. Welcome!');
       }
@@ -73,26 +72,23 @@ export const OtpVerificationScreen = ({ route, navigation }: any) => {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.title}>Enter 6-Digit OTP</Text>
+        <Text style={styles.title}>Enter 6-Digit Verification Code</Text>
         <Text style={styles.subtitle}>
-          We have sent a verification code to <Text style={styles.emailHighlight}>{email || 'your email'}</Text>.
+          We have sent a 6-digit verification code to <Text style={styles.emailHighlight}>{email || 'your email'}</Text>.
         </Text>
 
-        <Input
-          label="6-DIGIT OTP CODE *"
-          placeholder="e.g. 123456"
+        <OtpInput
+          label="6-DIGIT VERIFICATION CODE *"
           value={otp}
           onChangeText={setOtp}
-          keyboardType="numeric"
-          maxLength={6}
-          style={styles.otpInput}
+          onComplete={(code) => handleVerify(code)}
         />
 
         <Button
-          title="VERIFY OTP"
-          onPress={handleVerify}
+          title="VERIFY OTP CODE ✅"
+          onPress={() => handleVerify()}
           loading={loading}
-          style={{ marginTop: 16 }}
+          style={{ marginTop: 20 }}
         />
 
         <View style={styles.resendBox}>

@@ -12,15 +12,19 @@ import { useSites } from '../../context/SiteContext';
 import api, { getFullImageUrl, getThumbnailUrl } from '../../services/api';
 import { Site } from '../../types';
 
+import { customAlert } from '../../utils/alertHelper';
+
 export const SiteDetailScreen = ({ route, navigation }: any) => {
   const rawSiteId = route.params?.siteId;
-  const { activeSite, closeSite, reopenSite, refreshSites } = useSites();
+  const { activeSite, closeSite, reopenSite, deleteSite, refreshSites } = useSites();
   const siteId = rawSiteId && rawSiteId !== 'undefined' ? rawSiteId : activeSite?._id;
   const { isOwner } = useAuth();
   const [siteData, setSiteData] = useState<any>(null);
   const [summaryMetrics, setSummaryMetrics] = useState<any>(null);
   const [siteImages, setSiteImages] = useState<any[]>([]);
+  const [siteExpenses, setSiteExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sendingDailyReport, setSendingDailyReport] = useState(false);
 
   // Close Site Final Revenue & P&L Modal States
   const [showCloseModal, setShowCloseModal] = useState(false);
@@ -53,6 +57,15 @@ export const SiteDetailScreen = ({ route, navigation }: any) => {
       setLoading(false);
     }
 
+    // Load site expenses for quick inline management & deletion
+    try {
+      const resExp = await api.get(`/sites/${siteId}/expenses?limit=15`);
+      if (resExp.data?.success) setSiteExpenses(resExp.data.expenses || []);
+    } catch (expErr) {
+      console.log('Site expenses load notice:', expErr);
+      setSiteExpenses([]);
+    }
+
     // Load site images in isolated try-catch so 404 on server never breaks site loading
     try {
       const resImg = await api.get(`/sites/${siteId}/images`);
@@ -60,6 +73,30 @@ export const SiteDetailScreen = ({ route, navigation }: any) => {
     } catch (imgErr) {
       console.log('Site images API notice:', imgErr);
       setSiteImages([]);
+    }
+  };
+
+  const handleSendDailyReport = async () => {
+    setSendingDailyReport(true);
+    try {
+      const res = await api.post(`/sites/${siteId}/daily-report`);
+      if (res.data?.success) {
+        if (res.data.reportSent === false) {
+          customAlert(
+            'No Activity Today ℹ️',
+            `No items were added to "${siteData?.siteName}" today. Daily report emails are skipped when 0 items are added.`
+          );
+        } else {
+          customAlert(
+            'Daily Report Sent ✅',
+            `Daily report sent to Owner (${res.data.ownerEmail}) with today's ${res.data.itemCount} item(s) (Total: ₹${res.data.totalAmountToday?.toLocaleString('en-IN')}).`
+          );
+        }
+      }
+    } catch (err: any) {
+      customAlert('Error', err.message || 'Failed to send daily report.');
+    } finally {
+      setSendingDailyReport(false);
     }
   };
 
@@ -80,14 +117,14 @@ export const SiteDetailScreen = ({ route, navigation }: any) => {
       setShowCloseModal(false);
       
       if (resData?.emailSent === false) {
-        Alert.alert('Site Closed ⚠️', 'Site closed successfully, but the report email could not be sent.');
+        customAlert('Site Closed ⚠️', 'Site closed successfully, but the report email could not be sent.');
       } else {
-        Alert.alert('Site Closed ✅', 'Site closed successfully. Final report has been sent to the owner.');
+        customAlert('Site Closed ✅', 'Site closed successfully. Final report has been sent to the owner.');
       }
 
       navigation.navigate('FinalReport', { siteId });
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to finalize site closing.');
+      customAlert('Error', err.message || 'Failed to finalize site closing.');
     } finally {
       setClosingLoading(false);
     }
@@ -97,10 +134,60 @@ export const SiteDetailScreen = ({ route, navigation }: any) => {
     try {
       await reopenSite(siteId);
       await loadSiteDetails();
-      Alert.alert('Site Reopened ✅', 'Site is now ACTIVE for supervisor entry.');
+      customAlert('Site Reopened ✅', 'Site is now ACTIVE for supervisor entry.');
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      customAlert('Error', err.message);
     }
+  };
+
+  const handleDeleteSite = () => {
+    customAlert(
+      'Delete Site 🗑️',
+      `Are you sure you want to delete "${siteData?.siteName}"? All expenses, photos, collaborators, and audit logs will be permanently deleted. This action is ONLY available to Owner and cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Permanently',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteSite(siteId);
+              customAlert('Site Deleted ✅', `Site "${siteData?.siteName}" has been deleted.`, [
+                { text: 'OK', onPress: () => navigation.navigate('SitesList') }
+              ]);
+            } catch (err: any) {
+              customAlert('Error', err.message || 'Failed to delete site.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleDeleteExpense = (exp: any) => {
+    customAlert(
+      'Delete Expense 🗑️',
+      `Are you sure you want to delete expense "${exp.itemName}" (₹${exp.amount?.toLocaleString('en-IN')})?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await api.delete(`/expenses/${exp._id}`);
+              if (res.data?.success) {
+                customAlert('Deleted ✅', 'Expense item deleted successfully.');
+                await loadSiteDetails();
+                await refreshSites();
+              }
+            } catch (err: any) {
+              customAlert('Error', err.message || 'Failed to delete expense.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   if (loading || !siteData) {
@@ -180,6 +267,47 @@ export const SiteDetailScreen = ({ route, navigation }: any) => {
                 <StatCard title="GROSS PROFIT" value={`₹${(siteData.profit || 0).toLocaleString('en-IN')}`} subtitle={`${siteData.profitPercentage}% Margin`} type="profit" />
               </View>
             </>
+          )}
+        </Card>
+
+        {/* SITE EXPENSES & INLINE DELETE SECTION */}
+        <Card style={{ marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <Text style={styles.cardSectionTitle}>📑 Site Expenses ({siteExpenses.length})</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('ExpenseList', { siteId })}>
+              <Text style={{ color: Colors.accent, fontSize: 12, fontWeight: '800' }}>Manage All Log ➔</Text>
+            </TouchableOpacity>
+          </View>
+
+          {siteExpenses.length > 0 ? (
+            siteExpenses.map((exp: any) => {
+              const addedBy = exp.createdBy && typeof exp.createdBy === 'object' ? (exp.createdBy.name || 'Supervisor') : 'Supervisor';
+              return (
+                <View key={exp._id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.surfaceBorder }}>
+                  <TouchableOpacity style={{ flex: 1, marginRight: 8 }} onPress={() => navigation.navigate('ExpenseDetail', { expenseId: exp._id })}>
+                    <Text style={{ color: Colors.textPrimary, fontSize: 14, fontWeight: '800' }}>{exp.itemName}</Text>
+                    <Text style={{ color: Colors.textSecondary, fontSize: 11, marginTop: 2 }}>{exp.quantity} {exp.unit} × ₹{exp.rate.toLocaleString('en-IN')} • By {addedBy}</Text>
+                    <View style={{ flexDirection: 'row', gap: 4, marginTop: 4 }}>
+                      <Badge label={exp.category} variant="category" categoryName={exp.category} />
+                    </View>
+                  </TouchableOpacity>
+
+                  <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                    <Text style={{ color: Colors.accent, fontSize: 15, fontWeight: '900' }}>₹{exp.amount.toLocaleString('en-IN')}</Text>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteExpense(exp)}
+                      style={{ backgroundColor: Colors.dangerLight, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, borderWidth: 1, borderColor: Colors.danger }}
+                    >
+                      <Text style={{ color: Colors.danger, fontSize: 11, fontWeight: '800' }}>🗑️ Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })
+          ) : (
+            <Text style={{ color: Colors.textMuted, fontSize: 12, fontStyle: 'italic', marginVertical: 6 }}>
+              No expense entries recorded on this site yet. Tap "+ Add Expense" to record one.
+            </Text>
           )}
         </Card>
 
@@ -341,6 +469,21 @@ export const SiteDetailScreen = ({ route, navigation }: any) => {
           {isOwner && (
             <TouchableOpacity
               style={styles.actionCard}
+              onPress={handleSendDailyReport}
+              activeOpacity={0.8}
+              disabled={sendingDailyReport}
+            >
+              <View style={[styles.actionIconBadge, { backgroundColor: '#FEF3C7' }]}>
+                <Text style={styles.actionIcon}>📧</Text>
+              </View>
+              <Text style={styles.actionTitle}>Daily Report Email</Text>
+              <Text style={styles.actionSub}>{sendingDailyReport ? 'Sending...' : 'Send Today\'s Items'}</Text>
+            </TouchableOpacity>
+          )}
+
+          {isOwner && (
+            <TouchableOpacity
+              style={styles.actionCard}
               onPress={() => navigation.navigate('FinalReport', { siteId })}
               activeOpacity={0.8}
             >
@@ -353,21 +496,42 @@ export const SiteDetailScreen = ({ route, navigation }: any) => {
           )}
         </View>
 
-        {/* Site Closing / Reopening Admin Controls */}
+        {/* SITE CLOSING & DELETION ADMIN CONTROLS (OWNER ONLY - AT THE VERY BOTTOM) */}
         {isOwner && (
           <View style={styles.adminBox}>
-            <Text style={styles.adminTitle}>SITE CLOSING & P&L RECONCILIATION</Text>
+            <Text style={styles.adminTitle}>SITE CLOSING & MANAGEMENT (OWNER ONLY)</Text>
+            
+            {/* CLOSE SITE SECTION - DISTINCT AMBER ORANGE COLOR */}
             {isClosed ? (
-              <View>
+              <View style={{ marginBottom: 12 }}>
                 <Text style={styles.closedNote}>This site is currently CLOSED. Supervisors cannot add new expenses.</Text>
                 <Button title="🔓 REOPEN SITE WORKSPACE" onPress={handleReopenSite} variant="success" style={{ marginTop: 10 }} />
               </View>
             ) : (
-              <View>
+              <View style={{ marginBottom: 14 }}>
                 <Text style={styles.closedNote}>Closing site will calculate final net profit/loss, lock expense entries, and generate the PDF report.</Text>
-                <Button title="🔒 CLOSE THIS SITE & RECONCILE P&L" onPress={openCloseSiteModal} variant="danger" style={{ marginTop: 10 }} />
+                <TouchableOpacity
+                  onPress={openCloseSiteModal}
+                  style={styles.closeSiteBtn}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.closeSiteBtnText}>🔒 CLOSE THIS SITE & RECONCILE P&L</Text>
+                </TouchableOpacity>
               </View>
             )}
+
+            {/* DELETE SITE SECTION - DISTINCT CRIMSON RED DANGER COLOR */}
+            <View style={{ paddingTop: 14, borderTopWidth: 1, borderTopColor: Colors.surfaceBorder }}>
+              <Text style={{ color: Colors.danger, fontSize: 11, fontWeight: '800', letterSpacing: 0.5 }}>⚠️ DANGER ZONE - PERMANENT DELETION</Text>
+              <Text style={styles.closedNote}>Permanently delete this site along with all expenses, photos, and team access.</Text>
+              <TouchableOpacity
+                onPress={handleDeleteSite}
+                style={styles.deleteSiteBtn}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.deleteSiteBtnText}>🗑️ DELETE THIS SITE PERMANENTLY</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -522,8 +686,46 @@ const styles = StyleSheet.create({
   actionTitle: { color: Colors.textPrimary, fontSize: 12, fontWeight: '800', textAlign: 'center' },
   actionSub: { color: Colors.textMuted, fontSize: 10, textAlign: 'center', marginTop: 2 },
   adminBox: { backgroundColor: Colors.primaryLight, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.surfaceBorder, marginBottom: 30 },
-  adminTitle: { color: Colors.accent, fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
-  closedNote: { color: Colors.textSecondary, fontSize: 11, marginTop: 4, lineHeight: 16 },
+  adminTitle: { color: Colors.accent, fontSize: 12, fontWeight: '800', letterSpacing: 0.5, marginBottom: 4 },
+  closedNote: { color: Colors.textSecondary, fontSize: 11, marginTop: 4, lineHeight: 16, marginBottom: 6 },
+  closeSiteBtn: {
+    backgroundColor: '#D97706', // Distinct Warning Amber/Orange Color for Close Site
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+    elevation: 2,
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4
+  },
+  closeSiteBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+    letterSpacing: 0.3
+  },
+  deleteSiteBtn: {
+    backgroundColor: '#DC2626', // Distinct Crimson Red Danger Color for Delete Site
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+    elevation: 2,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4
+  },
+  deleteSiteBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+    letterSpacing: 0.3
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.65)',

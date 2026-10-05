@@ -6,12 +6,15 @@ import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
+import { useSites } from '../../context/SiteContext';
 import api from '../../services/api';
 import { Expense } from '../../types';
+import { customAlert } from '../../utils/alertHelper';
 
 export const ExpenseDetailScreen = ({ route, navigation }: any) => {
   const { expenseId } = route.params;
-  const { user, isOwner } = useAuth();
+  const { user, isOwner, isSupervisor } = useAuth();
+  const { refreshSites } = useSites();
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,31 +29,37 @@ export const ExpenseDetailScreen = ({ route, navigation }: any) => {
         setExpense(res.data.expense);
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to fetch expense details.');
+      customAlert('Error', err.message || 'Failed to fetch expense details.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = () => {
-    Alert.alert('Delete Expense', 'Are you sure you want to delete this expense record? An audit log entry will be saved.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const res = await api.delete(`/expenses/${expenseId}`);
-            if (res.data?.success) {
-              Alert.alert('Deleted', 'Expense record deleted.');
-              navigation.goBack();
+    customAlert(
+      'Delete Expense 🗑️',
+      'Are you sure you want to delete this expense record? An audit log entry will be saved.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await api.delete(`/expenses/${expenseId}`);
+              if (res.data?.success) {
+                await refreshSites();
+                customAlert('Deleted ✅', 'Expense record deleted.', [
+                  { text: 'OK', onPress: () => navigation.goBack() }
+                ]);
+              }
+            } catch (e: any) {
+              customAlert('Delete Failed', e.message);
             }
-          } catch (e: any) {
-            Alert.alert('Delete Failed', e.message);
           }
         }
-      }
-    ]);
+      ]
+    );
   };
 
   if (loading || !expense) {
@@ -140,7 +149,7 @@ export const ExpenseDetailScreen = ({ route, navigation }: any) => {
 
         {/* Action Buttons */}
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 10, marginBottom: 30 }}>
-          {isOwner && (
+          {(isOwner || isSupervisor) && (
             <Button
               title="DELETE ENTRY"
               onPress={handleDelete}

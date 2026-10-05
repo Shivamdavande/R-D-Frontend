@@ -144,22 +144,6 @@ export const RegisterScreen = ({ navigation }: any) => {
             <Input label="Phone Number" placeholder="+91 98765 00000" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
             <Input label="Password *" placeholder="••••••••" value={password} onChangeText={setPassword} secureTextEntry />
 
-            <Text style={styles.roleLabel}>Select Account Role:</Text>
-            <View style={styles.roleRow}>
-              <TouchableOpacity
-                style={[styles.roleBtn, role === 'SUPERVISOR' && styles.roleActive]}
-                onPress={() => setRole('SUPERVISOR')}
-              >
-                <Text style={[styles.roleText, role === 'SUPERVISOR' && styles.roleActiveText]}>👷 SUPERVISOR</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.roleBtn, role === 'OWNER' && styles.roleActive]}
-                onPress={() => setRole('OWNER')}
-              >
-                <Text style={[styles.roleText, role === 'OWNER' && styles.roleActiveText]}>👑 OWNER / ADMIN</Text>
-              </TouchableOpacity>
-            </View>
-
             <Button title="SEND OTP & CONTINUE 📩" onPress={handleSendOtp} loading={loading} style={{ marginTop: 16 }} />
 
             <TouchableOpacity onPress={() => navigation.navigate('Login')} style={{ marginTop: 16, alignItems: 'center' }}>
@@ -233,12 +217,6 @@ const styles = StyleSheet.create({
   otpInput: { fontSize: 22, letterSpacing: 6, textAlign: 'center', fontWeight: '800' },
   resendBox: { marginTop: 18, alignItems: 'center' },
   cooldownText: { color: Colors.textMuted, fontSize: 13 },
-  resendActiveText: { color: Colors.accent, fontSize: 14, fontWeight: '700' },
-  roleLabel: { color: Colors.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 6 },
-  roleRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  roleBtn: { flex: 1, padding: 10, borderRadius: 8, borderWidth: 1, borderColor: Colors.inputBorder, alignItems: 'center', backgroundColor: Colors.inputBg },
-  roleActive: { borderColor: Colors.accent, backgroundColor: Colors.primaryLight },
-  roleText: { color: Colors.textSecondary, fontSize: 12, fontWeight: '700' },
-  roleActiveText: { color: Colors.accent }
+  resendActiveText: { color: Colors.accent, fontSize: 14, fontWeight: '700' }
 });
 

@@ -23,6 +23,12 @@ let cachedToken: string | null = null;
   }
 })();
 
+let onUnauthorizedCallback: (() => void) | null = null;
+
+export const setOnUnauthorizedCallback = (cb: (() => void) | null) => {
+  onUnauthorizedCallback = cb;
+};
+
 export const setCachedToken = (token: string | null) => {
   cachedToken = token;
 };
@@ -76,6 +82,16 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const url = error.config?.url || '';
+    const isAuthLoginEndpoint = url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/verify-otp') || url.includes('/auth/reset-password') || url.includes('/auth/forgot-password');
+
+    if (error.response?.status === 401 && !isAuthLoginEndpoint) {
+      setCachedToken(null);
+      if (onUnauthorizedCallback) {
+        onUnauthorizedCallback();
+      }
+    }
+
     const customError = error.response?.data?.message || error.message || 'Network error: Unable to connect to server';
     const errObj: any = new Error(customError);
     if (error.response) {

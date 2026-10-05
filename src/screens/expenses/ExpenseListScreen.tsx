@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Header } from '../../components/common/Header';
 import { Input } from '../../components/common/Input';
@@ -7,11 +7,14 @@ import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { EmptyState } from '../../components/common/EmptyState';
 import { useSites } from '../../context/SiteContext';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { Expense } from '../../types';
+import { customAlert } from '../../utils/alertHelper';
 
 export const ExpenseListScreen = ({ navigation }: any) => {
-  const { activeSite } = useSites();
+  const { activeSite, refreshSites } = useSites();
+  const { isOwner, isSupervisor } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -40,6 +43,32 @@ export const ExpenseListScreen = ({ navigation }: any) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteItem = (exp: Expense) => {
+    customAlert(
+      'Delete Item Expense 🗑️',
+      `Are you sure you want to delete item "${exp.itemName}" (₹${exp.amount.toLocaleString('en-IN')})?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await api.delete(`/expenses/${exp._id}`);
+              if (res.data?.success) {
+                customAlert('Deleted ✅', 'Item expense deleted successfully.');
+                await refreshSites();
+                loadExpenses();
+              }
+            } catch (err: any) {
+              customAlert('Error', err.message || 'Failed to delete item.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const CATEGORY_FILTERS = ['ALL', 'Material', 'Labour', 'Transport', 'Machinery', 'Fuel', 'Electrical', 'Tools', 'Miscellaneous'];
@@ -107,7 +136,18 @@ export const ExpenseListScreen = ({ navigation }: any) => {
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={styles.amountText}>₹{item.amount.toLocaleString('en-IN')}</Text>
                     <Text style={styles.userText}>👤 Added by: {userName}</Text>
-                    <Text style={styles.dateText}>{new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                      <Text style={styles.dateText}>{new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</Text>
+                      {(isOwner || isSupervisor) && (
+                        <TouchableOpacity
+                          onPress={() => handleDeleteItem(item)}
+                          style={{ padding: 2 }}
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                          <Text style={{ fontSize: 14 }}>🗑️</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
                 </View>
               </Card>

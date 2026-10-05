@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'rea
 import { Colors } from '../../theme/colors';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
+import { OtpInput } from '../../components/common/OtpInput';
 import { useAuth } from '../../context/AuthContext';
 
 export const ForgotPasswordScreen = ({ navigation }: any) => {
@@ -162,14 +163,10 @@ export const ForgotPasswordScreen = ({ navigation }: any) => {
               We sent a 6-digit reset code to <Text style={styles.emailHighlight}>{email}</Text>.
             </Text>
 
-            <Input
+            <OtpInput
               label="6-DIGIT RESET CODE *"
-              placeholder="e.g. 123456"
               value={otp}
               onChangeText={setOtp}
-              keyboardType="numeric"
-              maxLength={6}
-              style={styles.otpInput}
             />
 
             <Input

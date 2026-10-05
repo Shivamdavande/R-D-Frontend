@@ -13,12 +13,13 @@ interface SiteContextType {
   createSite: (data: Partial<Site>) => Promise<Site>;
   closeSite: (siteId: string) => Promise<any>;
   reopenSite: (siteId: string) => Promise<void>;
+  deleteSite: (siteId: string) => Promise<any>;
 }
 
 const SiteContext = createContext<SiteContextType>({} as SiteContextType);
 
 export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [sites, setSites] = useState<Site[]>([]);
   const [activeSite, setActiveSite] = useState<Site | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -30,7 +31,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSites([]);
       setActiveSite(null);
     }
-  }, [user]);
+  }, [user, token]);
 
   const refreshSites = async () => {
     // 1. Instant Cache-First: Load cached sites immediately for instant 0ms UI rendering
@@ -42,6 +43,11 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (e) {
       // Ignore local read errors
+    }
+
+    if (!user || (token && token.startsWith('demo_'))) {
+      setIsLoading(false);
+      return;
     }
 
     // 2. Sync latest data from backend in the background
@@ -63,6 +69,8 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setActiveSite(res.data.sites[0]);
             }
           }
+        } else {
+          setActiveSite(null);
         }
       }
     } catch (err) {
@@ -96,6 +104,14 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const deleteSite = async (siteId: string) => {
+    const res = await api.delete(`/sites/${siteId}`);
+    if (res.data?.success) {
+      await refreshSites();
+    }
+    return res.data;
+  };
+
   return (
     <SiteContext.Provider
       value={{
@@ -106,7 +122,8 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshSites,
         createSite,
         closeSite,
-        reopenSite
+        reopenSite,
+        deleteSite
       }}
     >
       {children}

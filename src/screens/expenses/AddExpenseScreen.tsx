@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNetwork } from '../../context/NetworkContext';
 import api from '../../services/api';
 import { savePendingExpense } from '../../services/offlineStorage';
+import { customAlert } from '../../utils/alertHelper';
 
 const CATEGORIES = [
   'Material',
@@ -30,7 +31,7 @@ const ITEM_SUGGESTIONS = ['18mm Ply', 'Cement', 'Steel (TMT 12mm)', 'Sand / Aggr
 
 export const AddExpenseScreen = ({ navigation, route }: any) => {
   const { user } = useAuth();
-  const { activeSite, sites, setActiveSite } = useSites();
+  const { activeSite, sites, setActiveSite, refreshSites } = useSites();
   const { isOnline, refreshPendingCount } = useNetwork();
 
   const preselectedSiteId = route.params?.siteId || activeSite?._id;
@@ -97,21 +98,21 @@ export const AddExpenseScreen = ({ navigation, route }: any) => {
 
   const handleSubmit = async () => {
     if (!siteId) {
-      Alert.alert('Validation Error', 'Please select a Site.');
+      customAlert('Validation Error', 'Please select a Site.');
       return;
     }
     if (!itemName.trim()) {
-      Alert.alert('Validation Error', 'Please enter Item Name.');
+      customAlert('Validation Error', 'Please enter Item Name.');
       return;
     }
     const q = parseFloat(quantity);
 
     if (isNaN(q) || q <= 0) {
-      Alert.alert('Validation Error', 'Please enter a valid Quantity.');
+      customAlert('Validation Error', 'Please enter a valid Quantity.');
       return;
     }
     if (finalTotalAmount <= 0) {
-      Alert.alert('Validation Error', 'Please enter Total Amount or Rate.');
+      customAlert('Validation Error', 'Please enter Total Amount or Rate.');
       return;
     }
 
@@ -135,19 +136,21 @@ export const AddExpenseScreen = ({ navigation, route }: any) => {
       if (!isOnline) {
         await savePendingExpense(payload as any);
         await refreshPendingCount();
-        Alert.alert('Saved Offline ⏳', 'Saved locally. Marked as "Pending Sync".', [
+        await refreshSites();
+        customAlert('Saved Offline ⏳', 'Saved locally. Marked as "Pending Sync".', [
           { text: 'OK', onPress: () => navigation.goBack() }
         ]);
       } else {
         const res = await api.post(`/sites/${siteId}/expenses`, payload);
         if (res.data?.success) {
-          Alert.alert('Success ✅', `Expense of ₹${finalTotalAmount.toLocaleString('en-IN')} added!`, [
+          await refreshSites();
+          customAlert('Success ✅', `Expense of ₹${finalTotalAmount.toLocaleString('en-IN')} added!`, [
             { text: 'OK', onPress: () => navigation.goBack() }
           ]);
         }
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to save expense.');
+      customAlert('Error', err.message || 'Failed to save expense.');
     } finally {
       setLoading(false);
     }
