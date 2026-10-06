@@ -5,7 +5,9 @@ import { Platform } from 'react-native';
 export const REMOTE_API_URL = 'https://r-d-q9ix.onrender.com/api';
 export const LOCAL_API_URL = 'http://localhost:5000/api';
 
-export const DEFAULT_API_URL = Platform.OS === 'web' ? LOCAL_API_URL : REMOTE_API_URL;
+const ENV_API_URL = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) ? process.env.EXPO_PUBLIC_API_URL : null;
+
+export const DEFAULT_API_URL = ENV_API_URL || REMOTE_API_URL;
 
 export let API_BASE_URL = DEFAULT_API_URL;
 
