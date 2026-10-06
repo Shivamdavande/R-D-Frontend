@@ -36,8 +36,10 @@ export const HomeScreen = ({ navigation }: any) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await refreshSites();
-    await loadHomeData();
+    await Promise.all([
+      refreshSites(),
+      loadHomeData()
+    ]);
     setRefreshing(false);
   };
 

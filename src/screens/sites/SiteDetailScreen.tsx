@@ -46,37 +46,29 @@ export const SiteDetailScreen = ({ route, navigation }: any) => {
     }
     setLoading(true);
     try {
-      const resSite = await api.get(`/sites/${siteId}`);
-      const resSum = await api.get(`/sites/${siteId}/summary`);
+      const [resSite, resSum, resExp, resImg] = await Promise.all([
+        api.get(`/sites/${siteId}`).catch(e => ({ data: null })),
+        api.get(`/sites/${siteId}/summary`).catch(e => ({ data: null })),
+        api.get(`/sites/${siteId}/expenses?limit=15`).catch(e => ({ data: null })),
+        api.get(`/sites/${siteId}/images`).catch(e => ({ data: null }))
+      ]);
 
-      if (resSite.data?.success) setSiteData(resSite.data.site);
-      if (resSum.data?.success) setSummaryMetrics(resSum.data.metrics);
+      if (resSite?.data?.success) setSiteData(resSite.data.site);
+      if (resSum?.data?.success) setSummaryMetrics(resSum.data.metrics);
+      if (resExp?.data?.success) setSiteExpenses(resExp.data.expenses || []);
+      if (resImg?.data?.success) setSiteImages(resImg.data.images || []);
     } catch (e: any) {
       console.log('Error loading site details:', e);
     } finally {
       setLoading(false);
     }
-
-    // Load site expenses for quick inline management & deletion
-    try {
-      const resExp = await api.get(`/sites/${siteId}/expenses?limit=15`);
-      if (resExp.data?.success) setSiteExpenses(resExp.data.expenses || []);
-    } catch (expErr) {
-      console.log('Site expenses load notice:', expErr);
-      setSiteExpenses([]);
-    }
-
-    // Load site images in isolated try-catch so 404 on server never breaks site loading
-    try {
-      const resImg = await api.get(`/sites/${siteId}/images`);
-      if (resImg.data?.success) setSiteImages(resImg.data.images || []);
-    } catch (imgErr) {
-      console.log('Site images API notice:', imgErr);
-      setSiteImages([]);
-    }
   };
 
   const handleSendDailyReport = async () => {
+    if (!siteId || siteId === 'undefined') {
+      customAlert('Error ⚠️', 'Invalid site selection.');
+      return;
+    }
     setSendingDailyReport(true);
     try {
       const res = await api.post(`/sites/${siteId}/daily-report`);
@@ -84,17 +76,18 @@ export const SiteDetailScreen = ({ route, navigation }: any) => {
         if (res.data.reportSent === false) {
           customAlert(
             'No Activity Today ℹ️',
-            `No items were added to "${siteData?.siteName}" today. Daily report emails are skipped when 0 items are added.`
+            res.data.message || `No items were added to "${siteData?.siteName}" today. Daily report emails are skipped when 0 items are added.`
           );
         } else {
           customAlert(
             'Daily Report Sent ✅',
-            `Daily report sent to Owner (${res.data.ownerEmail}) with today's ${res.data.itemCount} item(s) (Total: ₹${res.data.totalAmountToday?.toLocaleString('en-IN')}).`
+            res.data.message || `Daily report sent to Owner (${res.data.ownerEmail}) with today's ${res.data.itemCount} item(s) (Total: ₹${res.data.totalAmountToday?.toLocaleString('en-IN')}).`
           );
         }
       }
     } catch (err: any) {
-      customAlert('Error', err.message || 'Failed to send daily report.');
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to send daily report.';
+      customAlert('Error ⚠️', errorMsg);
     } finally {
       setSendingDailyReport(false);
     }
@@ -464,6 +457,18 @@ export const SiteDetailScreen = ({ route, navigation }: any) => {
             </View>
             <Text style={styles.actionTitle}>Audit Log</Text>
             <Text style={styles.actionSub}>History & Edits</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => navigation.navigate('SiteBills', { siteId, siteName: siteData.siteName })}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.actionIconBadge, { backgroundColor: '#ECFDF5' }]}>
+              <Text style={styles.actionIcon}>📁</Text>
+            </View>
+            <Text style={styles.actionTitle}>Excel Bills</Text>
+            <Text style={styles.actionSub}>Bill Attachments</Text>
           </TouchableOpacity>
 
           {isOwner && (

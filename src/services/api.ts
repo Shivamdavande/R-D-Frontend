@@ -54,14 +54,18 @@ api.interceptors.request.use(
       cachedCustomUrl = customUrl;
     }
 
-    if (customUrl && customUrl.trim()) {
-      let formatted = customUrl.trim().replace(/\/+$/, '');
-      if (!formatted.endsWith('/api')) {
-        formatted = `${formatted}/api`;
-      }
-      config.baseURL = formatted;
-    } else {
-      config.baseURL = DEFAULT_API_URL;
+    let baseUrl = (customUrl && customUrl.trim()) ? customUrl.trim() : DEFAULT_API_URL;
+    baseUrl = baseUrl.replace(/\/+$/, '');
+    if (!baseUrl.endsWith('/api')) {
+      baseUrl = `${baseUrl}/api`;
+    }
+    config.baseURL = baseUrl;
+
+    // Prevent duplicate /api/api in URL paths
+    if (config.url && config.url.startsWith('/api/')) {
+      config.url = config.url.substring(4);
+    } else if (config.url && config.url.startsWith('api/')) {
+      config.url = '/' + config.url.substring(4);
     }
 
     let token = cachedToken;
@@ -92,7 +96,10 @@ api.interceptors.response.use(
       }
     }
 
-    const customError = error.response?.data?.message || error.message || 'Network error: Unable to connect to server';
+    const serverMsg = typeof error.response?.data === 'string'
+      ? error.response.data
+      : (error.response?.data?.message || error.response?.data?.error);
+    const customError = serverMsg || error.message || 'Network error: Unable to connect to server';
     const errObj: any = new Error(customError);
     if (error.response) {
       errObj.response = error.response;

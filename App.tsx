@@ -28,6 +28,7 @@ import { CreateSiteScreen } from './src/screens/sites/CreateSiteScreen';
 import { SiteDetailScreen } from './src/screens/sites/SiteDetailScreen';
 import { SiteMembersScreen } from './src/screens/sites/SiteMembersScreen';
 import { SiteImagesScreen } from './src/screens/sites/SiteImagesScreen';
+import { SiteBillsScreen } from './src/screens/sites/SiteBillsScreen';
 import { AddExpenseScreen } from './src/screens/expenses/AddExpenseScreen';
 import { ExpenseListScreen } from './src/screens/expenses/ExpenseListScreen';
 import { ExpenseDetailScreen } from './src/screens/expenses/ExpenseDetailScreen';
@@ -135,6 +136,7 @@ function NavigationStack() {
           <Stack.Screen name="SiteDetail" component={SiteDetailScreen} />
           <Stack.Screen name="SiteMembers" component={SiteMembersScreen} />
           <Stack.Screen name="SiteImages" component={SiteImagesScreen} />
+          <Stack.Screen name="SiteBills" component={SiteBillsScreen} />
           <Stack.Screen name="AddExpense" component={AddExpenseScreen} />
           <Stack.Screen name="ExpenseList" component={ExpenseListScreen} />
           <Stack.Screen name="ExpenseDetail" component={ExpenseDetailScreen} />

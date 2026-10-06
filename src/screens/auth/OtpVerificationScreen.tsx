@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { OtpInput } from '../../components/common/OtpInput';
+import { Button } from '../../components/common/Button';
+import { useAuth } from '../../context/AuthContext';
 
 export const OtpVerificationScreen = ({ route, navigation }: any) => {
   const { email } = route.params || {};
